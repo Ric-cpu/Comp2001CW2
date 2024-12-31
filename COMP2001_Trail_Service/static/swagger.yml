@@ -1,0 +1,375 @@
+openapi: 3.0.0
+info:
+  title: Trail Service API
+  description: RESTful API for managing trails, features, and trail logs with JWT-based authentication.
+  version: 1.0.0
+
+paths:
+  /login:
+    post:
+      summary: Login and get a JWT token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: The email for authentication.
+                password:
+                  type: string
+                  description: The password for authentication.
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Successfully authenticated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT token for accessing protected routes.
+        '401':
+          description: Invalid credentials.
+
+  /trails:
+    get:
+      summary: Get all trails (protected with JWT)
+      tags:
+        - Trails
+      operationId: notes.read_all_trails
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Retrieve a list of all trails in the database.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trail'
+        '401':
+          description: Unauthorized.
+
+    post:
+      summary: Add a new trail (protected with JWT)
+      tags:
+        - Trails
+      operationId: notes.create_trail
+      description: Only admins can create trails.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrailInput'
+      responses:
+        '201':
+          description: Trail created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trail'
+        '401':
+          description: Unauthorized.
+
+  /trails/{trail_id}:
+    get:
+      summary: Get a specific trail by ID (protected with JWT)
+      tags:
+        - Trails
+      operationId: notes.read_one_trail
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trail_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            description: ID of the trail to fetch.
+      responses:
+        '200':
+          description: Trail details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trail'
+        '404':
+          description: Trail not found.
+        '401':
+          description: Unauthorized.
+
+    put:
+      summary: Update an existing trail (protected with JWT)
+      tags:
+        - Trails
+      operationId: notes.update_trail
+      description: Only admins can update trails.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trail_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            description: ID of the trail to update.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrailInput'
+      responses:
+        '200':
+          description: Trail updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trail'
+        '404':
+          description: Trail not found.
+        '401':
+          description: Unauthorized.
+
+    delete:
+      summary: Delete a trail by ID (protected with JWT)
+      tags:
+        - Trails
+      operationId: notes.delete_trail
+      description: Only admins can delete trails.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trail_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            description: ID of the trail to delete.
+      responses:
+        '200':
+          description: Trail deleted successfully.
+        '404':
+          description: Trail not found.
+        '401':
+          description: Unauthorized.
+
+  /trails/{trail_id}/points:
+    post:
+      summary: Add a location point to a trail
+      tags:
+        - LocationPoints
+      operationId: notes.add_location_point
+      description: Only admins can add location points to trails.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trail_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            description: ID of the trail to which the point will be added.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Latitude:
+                  type: number
+                  format: float
+                Longitude:
+                  type: number
+                  format: float
+                Order:
+                  type: integer
+      responses:
+        '201':
+          description: Location point created successfully.
+        '404':
+          description: Trail not found.
+
+    get:
+      summary: Get all location points for a trail
+      tags:
+        - LocationPoints
+      operationId: notes.get_location_points
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trail_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            description: ID of the trail to fetch points for.
+      responses:
+        '200':
+          description: A list of location points.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LocationPoint'
+        '404':
+          description: Trail not found.
+
+  /trails/{trail_id}/points/{point_id}:
+    put:
+      summary: Update a location point
+      tags:
+        - LocationPoints
+      operationId: notes.update_location_point
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trail_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: point_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Latitude:
+                  type: number
+                  format: float
+                Longitude:
+                  type: number
+                  format: float
+                Order:
+                  type: integer
+      responses:
+        '200':
+          description: Location point updated successfully.
+        '404':
+          description: Location point or trail not found.
+
+    delete:
+      summary: Delete a location point
+      tags:
+        - LocationPoints
+      operationId: notes.delete_location_point
+      description: Only admins can delete location points from trails.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trail_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: point_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Location point deleted successfully.
+        '404':
+          description: Location point or trail not found.
+
+components:
+  schemas:
+    Trail:
+      type: object
+      properties:
+        TrailID:
+          type: integer
+        TrailName:
+          type: string
+        TrailSummary:
+          type: string
+        TrailDescription:
+          type: string
+        Difficulty:
+          type: string
+        Location:
+          type: string
+        Length:
+          type: number
+          format: float
+        ElevationGain:
+          type: number
+          format: float
+        RouteType:
+          type: string
+
+    TrailInput:
+      type: object
+      required:
+        - TrailName
+        - TrailSummary
+        - TrailDescription
+        - Difficulty
+        - Location
+        - Length
+        - ElevationGain
+        - RouteType
+      properties:
+        TrailName:
+          type: string
+        TrailSummary:
+          type: string
+        TrailDescription:
+          type: string
+        Difficulty:
+          type: string
+        Location:
+          type: string
+        Length:
+          type: number
+          format: float
+        ElevationGain:
+          type: number
+          format: float
+        RouteType:
+          type: string
+
+    LocationPoint:
+      type: object
+      properties:
+        LocationPointID:
+          type: integer
+        Latitude:
+          type: number
+          format: float
+        Longitude:
+          type: number
+          format: float
+        Order:
+          type: integer
+        TrailID:
+          type: integer
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
