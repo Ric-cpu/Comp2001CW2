@@ -5,10 +5,10 @@ from flask_swagger_ui import get_swaggerui_blueprint
 from datetime import datetime, timedelta
 import config
 from models import Trail, LocationPoint, db
-import notes  # Business logic module
+import notes  
 
 # Constants
-SECRET_KEY = "your-secret-key"
+SECRET_KEY = "secret-key"
 AUTH_URL = "https://web.socem.plymouth.ac.uk/COMP2001/auth/api/users"
 TOKEN_EXPIRATION_MINUTES = 60
 
