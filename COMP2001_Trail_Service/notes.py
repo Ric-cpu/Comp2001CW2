@@ -4,7 +4,7 @@ from models import Trail, Feature, LocationPoint, TrailLog, trail_schema, trails
 import jwt
 
 # Secret key for JWT validation
-SECRET_KEY = "your-secret-key"
+SECRET_KEY = "secret-key"
 
 # Token validation function
 def validate_token(token):
