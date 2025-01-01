@@ -7,7 +7,7 @@ import config
 from models import Trail
 import notes  # Your module with business logic
 
-SECRET_KEY = "your-secret-key"
+SECRET_KEY = "secret-key"
 
 # Initialize Connexion app and Flask app
 app = config.connex_app
