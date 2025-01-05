@@ -7,9 +7,12 @@ info:
 paths:
   /login:
     post:
-      summary: Login and get a JWT token
+      summary: Authenticate via external API and receive a JWT token
       tags:
         - Authentication
+      description: |
+        This endpoint authenticates users by sending their credentials to an external authentication API.
+        If authentication is successful, a JWT token is returned, which can be used to access protected routes.
       requestBody:
         required: true
         content:
@@ -28,7 +31,7 @@ paths:
                 - password
       responses:
         '200':
-          description: Successfully authenticated.
+          description: Successfully authenticated via external API.
           content:
             application/json:
               schema:
@@ -39,6 +42,8 @@ paths:
                     description: JWT token for accessing protected routes.
         '401':
           description: Invalid credentials.
+        '500':
+          description: Authentication server error or invalid response.
 
   /trails:
     get:
