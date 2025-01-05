@@ -5,9 +5,11 @@ import datetime
 import functools
 import config
 from models import Trail
-import notes  # Your module with business logic
+import notes  
+import requests  # Import requests for API communication
 
 SECRET_KEY = "secret-key"
+AUTH_URL = "https://web.socem.plymouth.ac.uk/COMP2001/auth/api/users"
 
 # Initialize Connexion app and Flask app
 app = config.connex_app
@@ -55,19 +57,49 @@ def login():
     password = data.get("password")
 
     if not email or not password:
-        return {"error": "Email and password are required"}, 400
+        return jsonify({"error": "Email and password are required"}), 400
 
-    if email == "grace@plymouth.ac.uk" and password == "ISAD123!":
-        user_data = {"user_id": "1", "email": email, "role": "Admin"}
-    elif email == "tim@plymouth.ac.uk" and password == "COMP2001!":
-        user_data = {"user_id": "2", "email": email, "role": "User"}
-    elif email == "ada@plymouth.ac.uk" and password == "insecurePassword":
-        user_data = {"user_id": "3", "email": email, "role": "User"}
-    else:
+    # Authenticate using external API
+    response = requests.post(AUTH_URL, json={"email": email, "password": password})
+
+    if response.status_code != 200:
+        print("Authentication Failed:", response.text)
         abort(401, description="Invalid credentials")
 
-    token = generate_jwt(user_data)
-    return jsonify({"token": token}), 200
+    try:
+        user_data = response.json()
+        print("User Data Received:", user_data)
+    except ValueError:
+        abort(500, description="Invalid response from authentication server")
+
+    # **NEW FIX: Assign Role Based on Email**
+    if isinstance(user_data, list):
+        if "Verified" in user_data and "True" in user_data:
+            user_id = email  # Use email as the user identifier
+            
+            # **Manually Define Admin Emails Here**
+            admin_users = ["grace@plymouth.ac.uk"]
+            role = "Admin" if email in admin_users else "User"
+        else:
+            abort(500, description=f"Unexpected list response from authentication server: {user_data}")
+    elif isinstance(user_data, dict):
+        user_id = user_data.get("id") or user_data.get("user_id")
+        role = user_data.get("role", "User")  # Default to "User"
+    else:
+        abort(500, description=f"Unexpected response format from authentication server: {user_data}")
+
+    if not user_id:
+        abort(500, description="Missing user ID in authentication response")
+
+    # Generate JWT
+    token = generate_jwt({"user_id": user_id, "role": role})
+    
+    return jsonify({"token": token, "role": role}), 200  # ✅ Include role in response
+
+
+
+
+
 
 @flask_app.route("/trails", methods=["POST"])
 @require_auth
@@ -88,7 +120,6 @@ def read_all_trails():
 def read_one_trail(trail_id):
     return jsonify(notes.read_one_trail(trail_id)), 200
 
-
 @flask_app.route("/trails/<int:trail_id>", methods=["PUT"])
 @require_auth
 def update_trail(trail_id):
@@ -97,14 +128,11 @@ def update_trail(trail_id):
         abort(400, description="Request body is missing")
     return jsonify(notes.update_trail(trail_id, trail_data)), 200
 
-
 @flask_app.route("/trails/<int:trail_id>", methods=["DELETE"])
 @require_auth
 def delete_trail(trail_id):
     result, status_code = notes.delete_trail(trail_id)  # Capture the JSON response and status code
     return jsonify(result), status_code  # Use jsonify to serialize the response
-
-
 
 @flask_app.route("/trails/<int:trail_id>/points", methods=["POST"])
 @require_auth
@@ -128,11 +156,6 @@ def update_point(trail_id, point_id):
 def delete_point(trail_id, point_id):
     return jsonify(notes.delete_location_point(trail_id, point_id)), 200
 
-
-
-
-
-
 @flask_app.route("/")
 def home():
     try:
@@ -143,3 +166,4 @@ def home():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
+
